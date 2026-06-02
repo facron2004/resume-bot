@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}预览 - {{ resume.name }}{% endblock %}
+{% block page_path %}简历 / {{ resume.name }}{% endblock %}
+
+{% block head %}
+<style>
+    .resume-paper {
+        background: #ffffff;
+        color: #1f2937;
+        font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    }
+    .resume-paper h2 {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #111827;
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 0.3rem;
+        margin-bottom: 0.6rem;
+    }
+    .skill-tag {
+        display: inline-block;
+        padding: 0.15rem 0.55rem;
+        background: #eff6ff;
+        color: #1d4ed8;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="h-full flex flex-col gap-3">
+    <!-- Top bar -->
+    <div class="shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <a href="/resumes" class="btn btn-ghost btn-sm text-xs py-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                返回
+            </a>
+            <span class="text-sm font-medium text-white">{{ resume.name }}</span>
+            <span class="text-[10px] text-gray-500">v{{ resume.version or 1 }}</span>
+        </div>
+        <button onclick="document.getElementById('aiEditModal').classList.remove('hidden')"
+                class="btn btn-primary btn-sm text-xs py-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            AI 修改
+        </button>
+    </div>
+
+    <!-- Resume preview - scrollable paper -->
+    <div class="flex-1 overflow-y-auto">
+        <div class="resume-paper rounded-xl p-5 md:p-6 max-w-3xl mx-auto">
+            {% set c = resume.content %}
+            {% if not c or c.get('error') %}
+            <div class="text-center py-6 text-gray-400 text-sm">
+                <p>简历内容加载失败{{ '：' + c.get('error') if c and c.get('error') else '' }}</p>
+                {% if c and c.get('raw_text') %}
+                <pre class="text-left text-xs mt-3 p-3 bg-gray-50 rounded-lg max-h-40 overflow-y-auto">{{ c.raw_text[:2000] }}</pre>
+                {% endif %}
+            </div>
+            {% else %}
+
+            <!-- Header -->
+            <div class="text-center border-b-2 border-gray-100 pb-4 mb-4">
+                <h1 class="text-xl font-bold text-gray-900">{{ c.get('name', '') }}</h1>
+                <div class="flex justify-center gap-3 mt-1.5 text-xs text-gray-500">
+                    {% if c.get('phone') %}<span>{{ c.phone }}</span>{% endif %}
+                    {% if c.get('email') %}<span>{{ c.email }}</span>{% endif %}
+                    {% if c.get('title') %}<span class="text-blue-600 font-medium">{{ c.title }}</span>{% endif %}
+                </div>
+            </div>
+
+            <!-- Summary -->
+            {% if c.get('summary') %}
+            <div class="mb-4">
+                <h2>自我评价</h2>
+                <p class="text-xs text-gray-700 leading-relaxed">{{ c.summary }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Work experiences -->
+            {% if c.get('work_experiences') %}
+            <div class="mb-4">
+                <h2>工作经历</h2>
+                {% for exp in c.work_experiences %}
+                <div class="mb-3 last:mb-0">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">{{ exp.company }}</p>
+                            <p class="text-xs text-blue-600 font-medium">{{ exp.position }}</p>
+                        </div>
+                        <span class="text-[10px] text-gray-400 shrink-0 ml-2 mt-0.5">{{ exp.period }}</span>
+                    </div>
+                    <p class="text-xs text-gray-600 mt-1 leading-relaxed">{{ exp.description }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Projects -->
+            {% if c.get('projects') %}
+            <div class="mb-4">
+                <h2>项目经历</h2>
+                {% for proj in c.projects %}
+                <div class="mb-3 last:mb-0">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">{{ proj.name }}</p>
+                            <p class="text-xs text-blue-600 font-medium">{{ proj.role }}</p>
+                        </div>
+                        <span class="text-[10px] text-gray-400 shrink-0 ml-2 mt-0.5">{{ proj.period }}</span>
+                    </div>
+                    <p class="text-xs text-gray-600 mt-1 leading-relaxed">{{ proj.description }}</p>
+                    {% if proj.technologies %}
+                    <div class="flex flex-wrap gap-1 mt-1">
+                        {% for tech in proj.technologies.split(',') %}
+                        <span class="skill-tag">{{ tech.strip() }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Education -->
+            {% if c.get('educations') %}
+            <div class="mb-4">
+                <h2>教育背景</h2>
+                {% for edu in c.educations %}
+                <div class="flex justify-between items-start mb-1.5 last:mb-0">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">{{ edu.school }}</p>
+                        <p class="text-xs text-gray-600">{{ edu.major }} · {{ edu.degree }}</p>
+                    </div>
+                    <span class="text-[10px] text-gray-400 shrink-0 ml-2 mt-0.5">{{ edu.period }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Skills -->
+            {% if c.get('skills') %}
+            <div>
+                <h2>专业技能</h2>
+                <div class="flex flex-wrap gap-1.5">
+                    {% for skill in c.skills %}
+                    <span class="skill-tag">{{ skill }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- AI Edit Modal -->
+<div id="aiEditModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="glass rounded-xl p-5 w-full max-w-md animate-fade-in" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-white flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                AI 修改简历
+            </h3>
+            <button onclick="document.getElementById('aiEditModal').classList.add('hidden')" class="text-gray-500 hover:text-white transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form method="post" action="/resumes/{{ resume.id }}/ai-edit" class="space-y-3">
+            <div>
+                <label class="block text-xs text-gray-400 mb-1">修改要求</label>
+                <textarea name="edit_instruction" rows="3" class="input-field text-sm" required
+                          placeholder="如：把目标职位改为「高级后端工程师」，优化工作描述，增加量化成果"></textarea>
+            </div>
+            <div class="bg-blue-500/5 border border-blue-500/10 rounded-lg p-2.5">
+                <p class="text-[11px] text-gray-400">💡 您可以要求：修改目标职位、优化描述语言、调整排版结构、增减内容等</p>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="document.getElementById('aiEditModal').classList.add('hidden')"
+                        class="btn btn-secondary btn-sm text-xs py-1">取消</button>
+                <button type="submit" class="btn btn-primary btn-sm text-xs py-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    确认修改
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

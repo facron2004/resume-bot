@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}仪表盘 — ResumeBot{% endblock %}
+{% block page_path %}仪表盘{% endblock %}
+
+{% block content %}
+<div class="h-full flex flex-col gap-3">
+
+    <!-- Stats row -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
+        {% set cards = [
+            ('总投递数', total_applications, 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', 'blue'),
+            ('今日投递', today_applications, 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6', 'emerald'),
+            ('面试邀约', interview_count, 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', 'purple'),
+            ('待处理', pending_jobs, 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', 'amber'),
+        ] %}
+        {% for label, value, icon, color in cards %}
+        <div class="glass rounded-xl p-3.5 stat-card stat-card-{{ color }} card-hover">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] text-gray-500 font-medium tracking-wide uppercase">{{ label }}</p>
+                    <p class="text-xl font-bold text-white mt-0.5 tabular-nums">{{ value }}</p>
+                </div>
+                <div class="w-8 h-8 rounded-lg bg-{{ color }}-500/10 flex items-center justify-center shrink-0 ring-1 ring-{{ color }}-500/10">
+                    <svg class="w-4 h-4 text-{{ color }}-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path d="{{ icon }}"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Two-column area -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-0">
+        <!-- Quick actions -->
+        <div class="glass rounded-xl p-4 flex flex-col card-hover overflow-hidden">
+            <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3 shrink-0">快速操作</h2>
+            <div class="grid grid-cols-2 gap-2 flex-1 content-start">
+                {% set actions = [
+                    ('/profiles', 'blue', 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14', '个人信息', '工作/技能/项目'),
+                    ('/resumes/create', 'emerald', 'M13 10V3L4 14h7v7l9-11h-7z', 'AI 生成简历', '目标岗位定制'),
+                    ('/jobs/config', 'purple', 'M21 21l-6-6m2-5a7 7 0 11-14 0', '搜索配置', '关键词/城市/薪资'),
+                    ('/settings', 'amber', 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0', '系统设置', 'API Key/策略'),
+                ] %}
+                {% for href, color, icon, title, desc in actions %}
+                <a href="{{ href }}" class="flex items-center gap-2.5 p-2.5 rounded-lg bg-gray-800/30 hover:bg-gray-800/60 transition-all group border border-transparent hover:border-{{ color }}-500/20">
+                    <div class="w-7 h-7 rounded-lg bg-{{ color }}-500/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                        <svg class="w-3.5 h-3.5 text-{{ color }}-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path d="{{ icon }}"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs font-medium text-white group-hover:text-{{ color }}-400 transition-colors truncate">{{ title }}</p>
+                        <p class="text-[10px] text-gray-500 truncate">{{ desc }}</p>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Steps -->
+        <div class="glass rounded-xl p-4 card-hover flex flex-col overflow-hidden">
+            <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3 shrink-0">使用流程</h2>
+            <div class="flex-1 space-y-0">
+                {% set steps = [
+                    ('blue', '填写个人信息', '工作经历、技能标签'),
+                    ('emerald', 'AI 生成简历', '选择目标岗位定制'),
+                    ('purple', '配置并抓取职位', 'Boss直聘 智能匹配'),
+                    ('amber', '自动投递', 'AI 评估 + 智能打招呼'),
+                ] %}
+                {% for color, title, desc in steps %}
+                <div class="flex items-start gap-3 py-2 {% if not loop.last %}border-b border-gray-800/40{% endif %}">
+                    <div class="flex flex-col items-center">
+                        <div class="w-5 h-5 rounded-full bg-{{ color }}-500/10 border border-{{ color }}-500/20 flex items-center justify-center shrink-0">
+                            <span class="text-[9px] font-bold text-{{ color }}-400">{{ loop.index }}</span>
+                        </div>
+                        {% if not loop.last %}<div class="w-px flex-1 bg-gray-800/60 mt-0.5 min-h-[8px]"></div>{% endif %}
+                    </div>
+                    <div class="pb-2{% if loop.last %} pb-0{% endif %}">
+                        <p class="text-sm font-medium text-white leading-tight">{{ title }}</p>
+                        <p class="text-[11px] text-gray-500 mt-0.5">{{ desc }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

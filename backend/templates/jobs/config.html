@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}搜索配置{% endblock %}
+{% block page_path %}职位搜索 / 配置{% endblock %}
+
+{% block content %}
+<div class="h-full flex flex-col gap-3">
+    <!-- Top bar -->
+    <div class="shrink-0 flex items-center gap-2">
+        <a href="/jobs" class="btn btn-ghost btn-sm text-xs py-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            返回
+        </a>
+        <span class="text-xs text-gray-500">管理搜索关键词和筛选条件</span>
+    </div>
+
+    <!-- Two-column layout -->
+    <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 min-h-0">
+        <!-- Existing configs -->
+        <div class="glass rounded-xl p-4 card-hover overflow-y-auto">
+            <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">已有配置</h2>
+            {% if configs %}
+            <div class="space-y-2">
+                {% for config in configs %}
+                <div class="flex items-center justify-between p-2.5 rounded-lg bg-gray-800/40 hover:bg-gray-800/60 transition-colors">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-medium text-white truncate">{{ config.name }}</span>
+                            {% if config.is_active %}
+                            <span class="badge badge-green text-[10px] py-0">启用</span>
+                            {% else %}
+                            <span class="badge text-[10px] py-0" style="background:rgba(75,85,99,0.3);color:#9ca3af">停用</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-[10px] text-gray-500 mt-0.5 truncate">{{ config.keywords }} · {{ config.city or '全国' }}</p>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0 ml-2">
+                        <form method="post" action="/jobs/config/{{ config.id }}/toggle">
+                            <button type="submit" class="btn btn-sm {% if config.is_active %}btn-ghost{% else %}btn-primary{% endif %} text-[10px] py-1 px-2">
+                                {{ '停用' if config.is_active else '启用' }}
+                            </button>
+                        </form>
+                        <form method="post" action="/jobs/config/{{ config.id }}/delete" @submit.prevent="confirm('确认删除？', '此操作不可恢复', () => $el.submit())">
+                            <button type="submit" class="btn btn-danger btn-sm text-[10px] py-1 px-2">删除</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-xs py-8 text-center">暂无配置</p>
+            {% endif %}
+        </div>
+
+        <!-- Add new config -->
+        <div class="glass rounded-xl p-4 card-hover overflow-y-auto">
+            <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">添加配置</h2>
+            <form method="post" action="/jobs/config/save" class="space-y-2.5">
+                <div>
+                    <label class="block text-[11px] text-gray-400 mb-0.5">配置名称</label>
+                    <input type="text" name="name" value="默认搜索" required class="input-field text-sm py-1.5">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-gray-400 mb-0.5">关键词</label>
+                    <input type="text" name="keywords" required class="input-field text-sm py-1.5" placeholder="Python, 后端开发">
+                </div>
+                <div>
+                    <label class="block text-[11px] text-gray-400 mb-0.5">城市</label>
+                    <input type="text" name="city" class="input-field text-sm py-1.5" placeholder="北京（留空为全国）">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[11px] text-gray-400 mb-0.5">最低薪资(K)</label>
+                        <input type="text" name="min_salary" class="input-field text-sm py-1.5" placeholder="15">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-gray-400 mb-0.5">最高薪资(K)</label>
+                        <input type="text" name="max_salary" class="input-field text-sm py-1.5" placeholder="50">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-gray-400 mb-0.5">经验要求</label>
+                    <select name="experience_level" class="input-field text-sm py-1.5">
+                        <option value="">不限</option>
+                        {% for v in ['应届生','1年以下','1-3年','3-5年','5-10年','10年以上'] %}
+                        <option value="{{ v }}">{{ v }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] text-gray-400 mb-0.5">学历要求</label>
+                    <select name="education_required" class="input-field text-sm py-1.5">
+                        <option value="">不限</option>
+                        {% for v in ['大专','本科','硕士','博士'] %}
+                        <option value="{{ v }}">{{ v }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-full text-sm py-1.5">添加配置</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

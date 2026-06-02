@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}个人信息{% endblock %}
+{% block page_path %}个人信息{% endblock %}
+
+{% block content %}
+<div class="h-full flex flex-col gap-3" x-data="{ modal: null }">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-3 flex-1 min-h-0">
+        <!-- Left: Basic info form -->
+        <div class="glass rounded-xl p-4 card-hover xl:col-span-2 overflow-y-auto">
+            <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">基本信息</h2>
+            <form method="post" action="/profiles/save" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div><label class="block text-[11px] text-gray-500 mb-0.5">姓名</label><input type="text" name="name" value="{{ user.name or '' }}" class="input-field text-sm py-1.5"></div>
+                <div><label class="block text-[11px] text-gray-500 mb-0.5">电话</label><input type="text" name="phone" value="{{ user.phone or '' }}" class="input-field text-sm py-1.5"></div>
+                <div><label class="block text-[11px] text-gray-500 mb-0.5">邮箱</label><input type="text" name="email" value="{{ user.email or '' }}" class="input-field text-sm py-1.5"></div>
+                <div><label class="block text-[11px] text-gray-500 mb-0.5">目标职位</label><input type="text" name="title" value="{{ user.title or '' }}" class="input-field text-sm py-1.5" placeholder="高级前端工程师"></div>
+                <div><label class="block text-[11px] text-gray-500 mb-0.5">年限</label><input type="number" name="years_exp" value="{{ user.years_exp or 0 }}" class="input-field text-sm py-1.5"></div>
+                <div><label class="block text-[11px] text-gray-500 mb-0.5">学历</label><select name="education" class="input-field text-sm py-1.5">
+                    <option value="">选择</option>{% for v in ['高中','大专','本科','硕士','博士'] %}<option value="{{ v }}" {% if user.education == v %}selected{% endif %}>{{ v }}</option>{% endfor %}
+                </select></div>
+                <div><label class="block text-[11px] text-gray-500 mb-0.5">当前薪资</label><input type="text" name="salary_current" value="{{ user.salary_current or '' }}" class="input-field text-sm py-1.5" placeholder="20K"></div>
+                <div><label class="block text-[11px] text-gray-500 mb-0.5">期望薪资</label><input type="text" name="salary_expected" value="{{ user.salary_expected or '' }}" class="input-field text-sm py-1.5" placeholder="30K"></div>
+                <div class="sm:col-span-2"><label class="block text-[11px] text-gray-500 mb-0.5">技能 (逗号分隔)</label>
+                    <input type="text" name="skills" value="{{ user.skills or '' }}" class="input-field text-sm py-1.5" placeholder="Python, React, TypeScript"></div>
+                <div class="sm:col-span-2"><label class="block text-[11px] text-gray-500 mb-0.5">自我评价</label>
+                    <textarea name="summary" rows="2" class="input-field text-sm py-1.5">{{ user.summary or '' }}</textarea></div>
+                <div class="sm:col-span-2 flex items-center justify-between">
+                    <span></span>
+                    <button type="submit" class="btn btn-primary btn-sm text-xs py-1.5 px-3">保存基本信息</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right: Work, Education, Projects -->
+        <div class="flex flex-col gap-3 min-h-0 overflow-y-auto">
+            <!-- Work Experience -->
+            <div class="glass rounded-xl p-4 card-hover shrink-0">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">工作经历</h2>
+                    <button @click="modal = 'work'" class="text-[10px] text-blue-400 hover:text-blue-300 transition-colors font-medium">+ 添加</button>
+                </div>
+                <div class="space-y-1.5 max-h-36 overflow-y-auto">
+                    {% if work_experiences %}{% for exp in work_experiences %}
+                    <div class="flex items-start justify-between p-2 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 group">
+                        <div class="min-w-0">
+                            <p class="text-white text-xs font-medium">{{ exp.company }} <span class="text-gray-400 font-normal">· {{ exp.position }}</span></p>
+                            <p class="text-[10px] text-gray-500 mt-0.5">{{ exp.start_date }} ~ {{ exp.end_date or '至今' }}{% if exp.description %} · {{ exp.description[:30] }}{% endif %}</p>
+                        </div>
+                        <form method="post" action="/profiles/work-experience/{{ exp.id }}/delete" class="shrink-0 ml-2" @submit.prevent="confirm('确认删除？', '此操作不可恢复', () => $el.submit())">
+                            <button class="text-red-400/0 group-hover:text-red-400 text-[10px] transition-colors hover:text-red-300">删除</button>
+                        </form>
+                    </div>
+                    {% endfor %}{% else %}
+                    <p class="text-xs text-gray-600 py-3 text-center">暂无，点击右上角添加</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Education -->
+            <div class="glass rounded-xl p-4 card-hover shrink-0">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">教育</h2>
+                    <button @click="modal = 'edu'" class="text-[10px] text-blue-400 hover:text-blue-300 transition-colors font-medium">+ 添加</button>
+                </div>
+                <div class="space-y-1.5 max-h-24 overflow-y-auto">
+                    {% if educations %}{% for edu in educations %}
+                    <div class="flex items-start justify-between p-2 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 group">
+                        <div><p class="text-white text-xs font-medium">{{ edu.school }}</p><p class="text-[10px] text-gray-500">{{ edu.major }} · {{ edu.degree }} · {{ edu.start_date }}~{{ edu.end_date }}</p></div>
+                        <form method="post" action="/profiles/education/{{ edu.id }}/delete" class="shrink-0 ml-2" @submit.prevent="confirm('确认删除？', '此操作不可恢复', () => $el.submit())"><button class="text-red-400/0 group-hover:text-red-400 text-[10px] transition-colors">删除</button></form>
+                    </div>
+                    {% endfor %}{% else %}<p class="text-xs text-gray-600 py-3 text-center">暂无，点击右上角添加</p>{% endif %}
+                </div>
+            </div>
+
+            <!-- Projects -->
+            <div class="glass rounded-xl p-4 card-hover shrink-0">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xs font-semibold text-gray-300 uppercase tracking-wider">项目</h2>
+                    <button @click="modal = 'project'" class="text-[10px] text-blue-400 hover:text-blue-300 transition-colors font-medium">+ 添加</button>
+                </div>
+                <div class="space-y-1.5 max-h-24 overflow-y-auto">
+                    {% if projects %}{% for proj in projects %}
+                    <div class="flex items-start justify-between p-2 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 group">
+                        <div><p class="text-white text-xs font-medium">{{ proj.name }} <span class="text-gray-400 font-normal">· {{ proj.role }}</span></p><p class="text-[10px] text-gray-500">{{ proj.technologies }}</p></div>
+                        <form method="post" action="/profiles/project/{{ proj.id }}/delete" class="shrink-0 ml-2" @submit.prevent="confirm('确认删除？', '此操作不可恢复', () => $el.submit())"><button class="text-red-400/0 group-hover:text-red-400 text-[10px] transition-colors">删除</button></form>
+                    </div>
+                    {% endfor %}{% else %}<p class="text-xs text-gray-600 py-3 text-center">暂无，点击右上角添加</p>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal backdrop (shared) -->
+    <div x-show="modal" x-cloak class="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+         x-transition.opacity @click.self="modal = null" @keydown.escape.window="modal = null"></div>
+
+    <!-- Modal: Add Work -->
+    <div x-show="modal === 'work'" x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
+        <div class="relative glass rounded-xl p-5 w-full max-w-md pointer-events-auto" x-transition>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-semibold text-white">添加工作经历</h3>
+                <button @click="modal = null" class="text-gray-500 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            <form method="post" action="/profiles/work-experience/add" class="space-y-3">
+                <input type="text" name="company" class="input-field text-sm py-1.5" placeholder="公司名称" required>
+                <input type="text" name="position" class="input-field text-sm py-1.5" placeholder="职位" required>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" name="start_date" class="input-field text-sm py-1.5" placeholder="开始 (2020-01)">
+                    <input type="text" name="end_date" class="input-field text-sm py-1.5" placeholder="结束 (留空=至今)">
+                </div>
+                <textarea name="description" rows="2" class="input-field text-sm py-1.5" placeholder="工作描述和主要成就"></textarea>
+                <div class="flex justify-end gap-2 pt-1">
+                    <button type="button" @click="modal = null" class="btn btn-secondary btn-sm text-xs py-1">取消</button>
+                    <button type="submit" class="btn btn-primary btn-sm text-xs py-1">确认添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add Education -->
+    <div x-show="modal === 'edu'" x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
+        <div class="relative glass rounded-xl p-5 w-full max-w-md pointer-events-auto" x-transition>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-semibold text-white">添加教育经历</h3>
+                <button @click="modal = null" class="text-gray-500 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            <form method="post" action="/profiles/education/add" class="space-y-3">
+                <input type="text" name="school" class="input-field text-sm py-1.5" placeholder="学校名称" required>
+                <input type="text" name="major" class="input-field text-sm py-1.5" placeholder="专业">
+                <select name="degree" class="input-field text-sm py-1.5"><option value="本科">本科</option><option value="硕士">硕士</option><option value="博士">博士</option><option value="大专">大专</option></select>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" name="start_date" class="input-field text-sm py-1.5" placeholder="开始 (2016-09)">
+                    <input type="text" name="end_date" class="input-field text-sm py-1.5" placeholder="结束 (2020-06)">
+                </div>
+                <div class="flex justify-end gap-2 pt-1">
+                    <button type="button" @click="modal = null" class="btn btn-secondary btn-sm text-xs py-1">取消</button>
+                    <button type="submit" class="btn btn-primary btn-sm text-xs py-1">确认添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add Project -->
+    <div x-show="modal === 'project'" x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none">
+        <div class="relative glass rounded-xl p-5 w-full max-w-md pointer-events-auto" x-transition>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-semibold text-white">添加项目经历</h3>
+                <button @click="modal = null" class="text-gray-500 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            <form method="post" action="/profiles/project/add" class="space-y-3">
+                <div class="grid grid-cols-3 gap-2">
+                    <input type="text" name="name" class="input-field text-sm py-1.5 col-span-2" placeholder="项目名称" required>
+                    <input type="text" name="role" class="input-field text-sm py-1.5" placeholder="角色" required>
+                </div>
+                <input type="text" name="technologies" class="input-field text-sm py-1.5" placeholder="技术栈 (如: React, Node.js)">
+                <textarea name="description" rows="2" class="input-field text-sm py-1.5" placeholder="项目描述和你的贡献"></textarea>
+                <div class="flex justify-end gap-2 pt-1">
+                    <button type="button" @click="modal = null" class="btn btn-secondary btn-sm text-xs py-1">取消</button>
+                    <button type="submit" class="btn btn-primary btn-sm text-xs py-1">确认添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

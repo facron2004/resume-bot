@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}AI 生成简历{% endblock %}
+{% block page_path %}简历 / AI 生成{% endblock %}
+
+{% block content %}
+<div class="h-full max-w-3xl mx-auto flex flex-col justify-center">
+    <div class="glass rounded-xl p-6 card-hover">
+        <div class="flex items-center gap-2 mb-4">
+            <a href="/resumes" class="text-gray-500 hover:text-gray-300 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+            </a>
+            <h1 class="text-base font-semibold text-white">AI 生成简历</h1>
+        </div>
+
+        {% if error %}
+        <div class="bg-red-500/10 border border-red-500/20 text-red-300 px-3 py-2 rounded-lg mb-3 text-xs">{{ error }}</div>
+        {% endif %}
+        {% if not user or not user.skills or user.skills in ('[]', '') %}
+        <div class="bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 px-3 py-2 rounded-lg mb-3 text-xs">
+            建议先<a href="/profiles" class="text-blue-400 underline mx-1">完善个人信息</a>，AI 能生成更精准的简历
+        </div>
+        {% endif %}
+
+        <!-- Upload section -->
+        <div class="mb-4 p-3 rounded-lg bg-gray-800/40 border border-gray-700/50">
+            <p class="text-[11px] text-gray-400 mb-2">已有简历文件？上传后 AI 自动优化：</p>
+            <form method="post" action="/resumes/upload" enctype="multipart/form-data" class="flex items-center gap-2">
+                <input type="file" name="file" accept=".pdf,.docx,.doc" required
+                       class="text-xs text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-blue-500/10 file:text-blue-400 hover:file:bg-blue-500/20 file:cursor-pointer file:transition-colors">
+                <input type="hidden" name="use_ai" value="true">
+                <button type="submit" class="btn btn-secondary btn-sm text-xs py-1">上传优化</button>
+            </form>
+        </div>
+
+        <!-- AI generate form -->
+        <form method="post" action="/resumes/generate" class="space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">简历名称</label>
+                    <input type="text" name="name" required class="input-field text-sm py-1.5" placeholder="前端开发-2024">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">目标职位</label>
+                    <input type="text" name="target_position" required class="input-field text-sm py-1.5" placeholder="高级前端工程师">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs text-gray-400 mb-1">目标行业（可选）</label>
+                    <input type="text" name="target_industry" class="input-field text-sm py-1.5" placeholder="互联网/电商/金融科技">
+                </div>
+            </div>
+            <div class="bg-gradient-to-r from-blue-500/5 to-cyan-500/5 rounded-lg p-3 border border-blue-500/10">
+                <p class="text-xs text-gray-400 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    AI 将基于您的个人信息、技能标签和经历，生成针对目标职位的定制简历
+                </p>
+            </div>
+            <button type="submit" class="btn btn-primary w-full text-sm py-2">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                AI 生成简历
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

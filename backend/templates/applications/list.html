@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}投递记录{% endblock %}
+{% block page_path %}投递记录{% endblock %}
+
+{% block content %}
+<div class="h-full flex flex-col gap-3">
+    <!-- Top bar -->
+    <div class="shrink-0 flex items-center justify-between">
+        <p class="text-xs text-gray-500">共 {{ total }} 条投递记录</p>
+    </div>
+
+    <!-- Status filters -->
+    <div class="shrink-0 flex items-center gap-1.5 flex-wrap">
+        {% set statuses = [('', '全部'), ('已投递', '已投递'), ('已读', '已读'), ('已沟通', '已沟通'), ('有回复', '有回复'), ('面试邀约', '面试邀约'), ('不合适', '不合适')] %}
+        {% for val, label in statuses %}
+        <a href="/applications?status={{ val }}" class="btn btn-sm {% if status == val %}btn-primary{% else %}btn-secondary{% endif %} text-xs py-1">
+            {{ label }}
+        </a>
+        {% endfor %}
+    </div>
+
+    {% if applications %}
+    <!-- Table -->
+    <div class="flex-1 overflow-y-auto">
+        <div class="glass rounded-lg overflow-hidden border border-gray-800/60">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-gray-800/60 bg-gray-800/30">
+                        <th class="px-3 py-2.5 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wider">职位</th>
+                        <th class="px-3 py-2.5 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wider hidden sm:table-cell">公司</th>
+                        <th class="px-3 py-2.5 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wider">状态</th>
+                        <th class="px-3 py-2.5 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wider hidden md:table-cell">时间</th>
+                        <th class="px-3 py-2.5 text-right text-[10px] font-medium text-gray-400 uppercase tracking-wider">操作</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800/40">
+                    {% for app in applications %}
+                    <tr class="hover:bg-gray-800/20 transition-colors">
+                        <td class="px-3 py-2.5">
+                            <p class="text-xs font-medium text-white">{{ app.job.title if app.job else '未知职位' }}</p>
+                        </td>
+                        <td class="px-3 py-2.5 text-xs text-gray-400 hidden sm:table-cell">{{ app.job.company if app.job else '-' }}</td>
+                        <td class="px-3 py-2.5">
+                            {% set status_class = {
+                                '面试邀约': 'badge-green',
+                                '已沟通': 'badge-blue',
+                                '有回复': 'badge-purple',
+                                '不合适': 'badge-red',
+                            } %}
+                            <span class="badge {{ status_class.get(app.status, 'badge') }} text-[10px]"
+                                  {% if app.status not in status_class %}style="background:rgba(75,85,99,0.3);color:#9ca3af"{% endif %}>
+                                {{ app.status }}
+                            </span>
+                        </td>
+                        <td class="px-3 py-2.5 text-xs text-gray-500 hidden md:table-cell">{{ app.applied_at.strftime('%m-%d %H:%M') }}</td>
+                        <td class="px-3 py-2.5 text-right">
+                            {% if app.chat_content %}
+                            <details class="relative inline-block">
+                                <summary class="btn btn-ghost btn-sm cursor-pointer list-none text-[10px] py-1 px-2">查看沟通</summary>
+                                <div class="absolute right-0 top-full mt-2 w-72 p-2.5 rounded-lg bg-gray-800 border border-gray-700 shadow-xl z-10 text-left">
+                                    <pre class="text-[11px] text-gray-300 whitespace-pre-wrap max-h-36 overflow-y-auto">{{ app.chat_content[:500] }}</pre>
+                                </div>
+                            </details>
+                            {% else %}
+                            <span class="text-[10px] text-gray-600">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="shrink-0 flex items-center justify-center gap-3 pt-1">
+        {% if page > 1 %}
+        <a href="/applications?page={{ page - 1 }}&status={{ status }}" class="btn btn-secondary btn-sm text-xs py-1">上一页</a>
+        {% endif %}
+        <span class="text-xs text-gray-500">{{ page }} / {{ total_pages }}</span>
+        {% if page < total_pages %}
+        <a href="/applications?page={{ page + 1 }}&status={{ status }}" class="btn btn-secondary btn-sm text-xs py-1">下一页</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="flex-1 flex flex-col items-center justify-center text-center">
+        <svg class="w-8 h-8 text-gray-700 mb-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        <p class="text-sm text-gray-400 font-medium">还没有投递记录</p>
+        <p class="text-xs text-gray-600 mt-1">当自动投递功能运行后，记录将显示在这里</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

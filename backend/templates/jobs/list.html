@@ -12,7 +12,7 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0"/></svg>
                 搜索配置
             </a>
-            <button onclick="alert('请先在系统设置中配置 DeepSeek API Key 和 Boss直聘 Cookie')" class="btn btn-primary btn-sm text-xs py-1">
+            <button onclick="startScrape()" id="scrapeBtn" class="btn btn-primary btn-sm text-xs py-1">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 开始抓取
             </button>
@@ -107,4 +107,33 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+async function startScrape() {
+    const btn = document.getElementById('scrapeBtn');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class=\"loading-spinner\"></span> 抓取中...';
+
+    try {
+        const resp = await fetch('/jobs/scrape', { method: 'POST' });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.started) {
+                btn.innerHTML = '已启动';
+                btn.className = 'btn btn-sm text-xs py-1';
+                btn.style.cssText = 'background:rgba(34,197,94,0.15);color:#86efac;border:1px solid rgba(34,197,94,0.2)';
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                btn.innerHTML = orig;
+                btn.disabled = false;
+                alert(data.error || '启动失败');
+            }
+        }
+    } catch(e) {
+        btn.innerHTML = orig;
+        btn.disabled = false;
+    }
+}
+</script>
 {% endblock %}

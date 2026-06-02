@@ -9,6 +9,7 @@ from backend.database.database import get_db
 from backend.database.models import Job, JobSearchConfig, User
 from backend.main import templates
 from backend.routers.auth import login_required
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -126,3 +127,93 @@ async def update_job_status(
         job.status = status
         db.commit()
     return RedirectResponse(url=_jback("已标记为不合适", "/jobs"), status_code=302)
+
+
+@router.post("/scrape")
+async def start_scrape(request: Request, db: Session = Depends(get_db)):
+    login_required(request)
+    import asyncio
+    import threading
+
+    # Check for cookie
+    from backend.database.database import SessionLocal
+    from backend.database.models import Setting
+
+    cookies = db.query(Setting).filter(Setting.key == "boss_cookies").first()
+    if not cookies or not cookies.value.strip():
+        return JSONResponse({"started": False, "error": "请先在系统设置中配置 Boss直聘 Cookie"})
+
+    api_key = db.query(Setting).filter(Setting.key == "deepseek_api_key").first()
+    if not api_key or not api_key.value.strip():
+        return JSONResponse({"started": False, "error": "请先在系统设置中配置 DeepSeek API Key"})
+
+    # Get active search configs
+    configs = db.query(JobSearchConfig).filter(JobSearchConfig.is_active == True).all()
+    if not configs:
+        return JSONResponse({"started": False, "error": "请先在搜索配置中添加并启用一个搜索配置"})
+
+    def _run_scrape():
+        import asyncio as aio
+        loop = aio.new_event_loop()
+        aio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(_do_scrape(configs, cookies.value))
+        finally:
+            loop.close()
+
+    threading.Thread(target=_run_scrape, daemon=True).start()
+    return JSONResponse({"started": True})
+
+
+async def _do_scrape(configs, cookies_str):
+    """Background scraping task"""
+    from backend.services.boss_browser import BossBrowser
+    from backend.services.job_matcher import JobMatcher
+    from backend.database.database import SessionLocal as SL
+
+    async with BossBrowser() as boss:
+        ok = await boss.login_with_cookies(cookies_str)
+        if not ok:
+            return
+
+        matcher = JobMatcher()
+
+        for cfg in configs:
+            keywords = [k.strip() for k in cfg.keywords.split(",") if k.strip()]
+            for kw in keywords:
+                try:
+                    jobs_data = await boss.search_jobs(kw, cfg.city or "")
+                    for jd in jobs_data:
+                        db2 = SL()
+                        try:
+                            existing = db2.query(Job).filter(Job.job_id == jd["job_id"]).first()
+                            if not existing:
+                                job = Job(
+                                    job_id=jd["job_id"],
+                                    title=jd["title"],
+                                    company=jd["company"],
+                                    city=cfg.city or "",
+                                    salary_min=jd.get("salary_min", 0),
+                                    salary_max=jd.get("salary_max", 0),
+                                    job_url=jd.get("job_url", ""),
+                                )
+                                db2.add(job)
+                                db2.commit()
+                                db2.refresh(job)
+                                try:
+                                    detail = await boss.get_job_detail(jd.get("job_url", ""))
+                                    if detail.get("jd_text"):
+                                        job.jd_text = detail["jd_text"]
+                                        user = db2.query(User).first()
+                                        if user:
+                                            score, reason = await matcher.match_job(user, job.title, job.company, detail["jd_text"])
+                                            job.match_score = score
+                                            job.match_reason = reason
+                                            db2.commit()
+                                except Exception:
+                                    pass
+                        finally:
+                            db2.close()
+                        await boss._random_delay(1, 3)
+                except Exception:
+                    continue
